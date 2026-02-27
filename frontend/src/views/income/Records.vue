@@ -3,26 +3,29 @@
     <!-- 搜索栏 -->
     <el-card shadow="never" class="filter-card">
       <el-row :gutter="12" align="middle">
-        <el-col :span="5">
+        <el-col :span="4">
           <el-select v-model="filter.year" placeholder="年份" clearable @change="fetchRecords(1)">
             <el-option v-for="y in yearOptions" :key="y" :label="y + ' 年'" :value="y" />
           </el-select>
         </el-col>
-        <el-col :span="5">
+        <el-col :span="4">
           <el-select v-model="filter.month" placeholder="月份" clearable @change="fetchRecords(1)">
             <el-option v-for="m in 12" :key="m" :label="m + ' 月'" :value="m" />
           </el-select>
         </el-col>
-        <el-col :span="6">
-          <el-select v-model="filter.source_id" placeholder="收入来源" clearable @change="fetchRecords(1)">
+        <el-col :span="5">
+          <el-select v-model="filter.source_id" placeholder="来源" clearable @change="fetchRecords(1)">
             <el-option v-for="s in sources" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </el-col>
-        <el-col :span="4">
+        <el-col :span="3">
           <el-button @click="resetFilter">重置</el-button>
         </el-col>
-        <el-col :span="4" style="text-align:right">
+        <el-col :span="8" style="text-align:right; display:flex; gap:8px; justify-content:flex-end">
+          <el-button icon="Download" @click="handleExport">导出 CSV</el-button>
+          <el-button icon="Upload" @click="triggerImport">导入 CSV</el-button>
           <el-button type="primary" icon="Plus" @click="openDialog()">新增记录</el-button>
+          <input ref="fileInputRef" type="file" accept=".csv" style="display:none" @change="handleImport" />
         </el-col>
       </el-row>
     </el-card>
@@ -67,7 +70,7 @@
     </el-card>
 
     <!-- 新增/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑收入记录' : '新增收入记录'" width="480px" destroy-on-close>
+    <el-dialog v-model="dialogVisible" :title="editingId ? '编辑余额记录' : '新增余额记录'" width="480px" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-form-item label="金额" prop="amount">
           <el-input-number
@@ -76,10 +79,10 @@
             :precision="2"
             :step="100"
             style="width:100%"
-            placeholder="请输入收入金额"
+            placeholder="请输入金额"
           />
         </el-form-item>
-        <el-form-item label="收入来源" prop="source_id">
+        <el-form-item label="来源" prop="source_id">
           <el-select v-model="form.source_id" placeholder="请选择来源" style="width:100%">
             <el-option v-for="s in sources" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
@@ -117,9 +120,11 @@ import { ref, reactive, onMounted } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { incomeApi, type IncomeRecord, type IncomeSource } from '@/api/income'
+import { useAuthStore } from '@/stores/auth'
 
 const currentYear = new Date().getFullYear()
 const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - i)
+const authStore = useAuthStore()
 
 // ---- 列表状态 ----
 const records = ref<IncomeRecord[]>([])
@@ -151,6 +156,55 @@ async function fetchRecords(p?: number) {
     total.value = res.data.total
   } finally {
     loading.value = false
+  }
+}
+
+// ---- 导出 ----
+function handleExport() {
+  const token = authStore.token
+  const q = new URLSearchParams()
+  if (filter.year) q.set('year', String(filter.year))
+  if (filter.month) q.set('month', String(filter.month))
+  if (filter.source_id) q.set('source_id', String(filter.source_id))
+  const url = `/api/income/records/export/csv?${q.toString()}`
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'records.csv'
+  // 附加 token：通过在请求头中传递不可行，改用 fetch + blob 下载
+  fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+    .then((r) => r.blob())
+    .then((blob) => {
+      const objectUrl = URL.createObjectURL(blob)
+      a.href = objectUrl
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(objectUrl)
+    })
+}
+
+// ---- 导入 ----
+const fileInputRef = ref<HTMLInputElement>()
+
+function triggerImport() {
+  fileInputRef.value?.click()
+}
+
+async function handleImport(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  try {
+    const res = await incomeApi.importCsv(file)
+    const { imported, skipped, errors } = res.data
+    if (errors.length > 0) {
+      ElMessage.warning(`导入完成：成功 ${imported} 条，跳过 ${skipped} 条。\n${errors.slice(0, 3).join('\n')}`)
+    } else {
+      ElMessage.success(`导入成功：共导入 ${imported} 条记录`)
+    }
+    fetchRecords(1)
+  } finally {
+    // 清空 input 以支持重复导入同一文件
+    if (fileInputRef.value) fileInputRef.value.value = ''
   }
 }
 

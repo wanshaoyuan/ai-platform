@@ -26,8 +26,6 @@ export const authApi = {
     return http.get('/auth/me')
   },
   changePassword(oldPassword: string, newPassword: string) {
-    return http.post('/auth/change-password', null, {
-      params: { old_password: oldPassword, new_password: newPassword },
-    })
+    return http.post('/auth/change-password', { old_password: oldPassword, new_password: newPassword })
   },
 }

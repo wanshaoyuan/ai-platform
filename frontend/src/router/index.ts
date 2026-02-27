@@ -18,13 +18,13 @@ const routes: RouteRecordRaw[] = [
         path: 'income/dashboard',
         name: 'IncomeDashboard',
         component: () => import('@/views/income/Dashboard.vue'),
-        meta: { title: '收入概览', module: 'income' },
+        meta: { title: '余额概览', module: 'income' },
       },
       {
         path: 'income/records',
         name: 'IncomeRecords',
         component: () => import('@/views/income/Records.vue'),
-        meta: { title: '收入记录', module: 'income' },
+        meta: { title: '余额记录', module: 'income' },
       },
       {
         path: 'income/sources',

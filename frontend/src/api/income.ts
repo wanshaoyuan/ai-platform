@@ -38,6 +38,11 @@ export interface MonthlyBreakdownItem {
   percentage: number
 }
 
+export interface AnnualTotalItem {
+  year: number
+  total: number
+}
+
 export const incomeApi = {
   // ---------- 来源 ----------
   getSources(includeInactive = false) {
@@ -77,5 +82,24 @@ export const incomeApi = {
     return http.get<MonthlyBreakdownItem[]>('/income/records/stats/monthly-breakdown', {
       params: { year, month },
     })
+  },
+  getAnnualTotals(years = 5) {
+    return http.get<AnnualTotalItem[]>('/income/records/stats/annual-totals', { params: { years } })
+  },
+  exportCsvUrl(params: { year?: number; month?: number; source_id?: number }, token: string) {
+    const q = new URLSearchParams()
+    if (params.year) q.set('year', String(params.year))
+    if (params.month) q.set('month', String(params.month))
+    if (params.source_id) q.set('source_id', String(params.source_id))
+    return `/api/income/records/export/csv?${q.toString()}`
+  },
+  importCsv(file: File) {
+    const form = new FormData()
+    form.append('file', file)
+    return http.post<{ imported: number; skipped: number; errors: string[] }>(
+      '/income/records/import/csv',
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } }
+    )
   },
 }
