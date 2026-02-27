@@ -242,12 +242,12 @@ onMounted(async () => {
 }
 
 .filter-card {
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .amount-text {
   font-weight: 600;
-  color: #67c23a;
+  color: #22c55e;
 }
 
 .pagination-bar {

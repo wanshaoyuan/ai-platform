@@ -84,7 +84,7 @@ async function handleLogin() {
 <style scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e2a3a 0%, #2d4a6e 100%);
+  background: linear-gradient(160deg, #f0f6ff 0%, #fafbff 60%, #f4f8f0 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -92,10 +92,11 @@ async function handleLogin() {
 
 .login-card {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 48px 40px 36px;
   width: 400px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 24px rgba(64, 158, 255, 0.08), 0 1px 4px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(64, 158, 255, 0.1);
 }
 
 .login-header {
@@ -104,34 +105,37 @@ async function handleLogin() {
 }
 
 .login-logo {
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, #409eff, #1677ff);
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #60b8ff, #4096e0);
+  border-radius: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: #fff;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
 .login-header h2 {
   font-size: 20px;
-  color: #1a1a2e;
+  color: #1d2b3a;
   margin: 0 0 6px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .subtitle {
-  color: #909399;
+  color: #a8b2c0;
   font-size: 13px;
   margin: 0;
 }
 
 .login-hint {
   text-align: center;
-  color: #c0c4cc;
+  color: #c8cfd8;
   font-size: 12px;
   margin-top: 20px;
   margin-bottom: 0;

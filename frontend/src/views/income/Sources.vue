@@ -165,8 +165,8 @@ onMounted(fetchSources)
 }
 
 .card-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: #2d3748;
 }
 </style>

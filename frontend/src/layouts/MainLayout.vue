@@ -4,7 +4,7 @@
     <el-aside :width="isCollapsed ? '64px' : '220px'" class="sidebar">
       <!-- Logo 区域 -->
       <div class="logo-area">
-        <el-icon v-if="isCollapsed" size="24" color="#fff"><Platform /></el-icon>
+        <el-icon v-if="isCollapsed" size="24" color="#3b82f6"><Platform /></el-icon>
         <span v-else class="logo-text">AI 中台</span>
       </div>
 
@@ -14,9 +14,9 @@
         :collapse="isCollapsed"
         :collapse-transition="false"
         router
-        background-color="#1e2a3a"
-        text-color="#c0cfe0"
-        active-text-color="#409eff"
+        background-color="#ffffff"
+        text-color="#5a6478"
+        active-text-color="#3b82f6"
         class="side-menu"
       >
         <!-- 收入管理模块 -->
@@ -65,7 +65,7 @@
         <div class="header-right">
           <el-dropdown @command="handleCommand">
             <div class="user-info">
-              <el-avatar size="small" :style="{ background: '#409eff' }">
+              <el-avatar size="small" :style="{ background: '#3b82f6' }">
                 {{ userInitial }}
               </el-avatar>
               <span class="username">{{ authStore.user?.username }}</span>
@@ -133,11 +133,12 @@ function handleCommand(cmd: string) {
 
 /* 侧边栏 */
 .sidebar {
-  background: #1e2a3a;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
   transition: width 0.25s;
   overflow: hidden;
+  border-right: 1px solid #eef0f4;
 }
 
 .logo-area {
@@ -145,13 +146,13 @@ function handleCommand(cmd: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #eef0f4;
   flex-shrink: 0;
 }
 
 .logo-text {
-  color: #fff;
-  font-size: 18px;
+  color: #3b82f6;
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: 2px;
   white-space: nowrap;
@@ -165,31 +166,30 @@ function handleCommand(cmd: string) {
 }
 
 .collapse-btn {
-  height: 48px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c0cfe0;
+  color: #b0b9c8;
   cursor: pointer;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid #eef0f4;
   flex-shrink: 0;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 .collapse-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: #f5f8ff;
+  color: #3b82f6;
 }
 
 /* 顶部导航 */
 .top-header {
-  height: 60px;
+  height: 56px;
   background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  border-bottom: 1px solid #eef0f4;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 }
 
 .header-right {
@@ -203,22 +203,22 @@ function handleCommand(cmd: string) {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
   transition: background 0.2s;
 }
 .user-info:hover {
-  background: #f5f7fa;
+  background: #f0f6ff;
 }
 
 .username {
   font-size: 14px;
-  color: #303133;
+  color: #3c4a5e;
 }
 
 /* 主内容区 */
 .main-content {
-  background: #f0f2f5;
+  background: #f7f9fc;
   overflow-y: auto;
   padding: 20px;
 }
