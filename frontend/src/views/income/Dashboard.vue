@@ -3,25 +3,25 @@
     <!-- 顶部统计卡片 -->
     <el-row :gutter="16" class="stat-row">
       <el-col :span="6">
-        <el-card shadow="never" class="stat-card">
+        <el-card shadow="never" class="stat-card stat-card--blue">
           <div class="stat-label">本年总收入</div>
           <div class="stat-value primary">¥{{ fmt(yearTotal) }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="never" class="stat-card">
+        <el-card shadow="never" class="stat-card stat-card--green">
           <div class="stat-label">本月总收入</div>
           <div class="stat-value success">¥{{ fmt(monthTotal) }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="never" class="stat-card">
+        <el-card shadow="never" class="stat-card stat-card--orange">
           <div class="stat-label">月均收入</div>
           <div class="stat-value warning">¥{{ fmt(avgMonthly) }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card shadow="never" class="stat-card">
+        <el-card shadow="never" class="stat-card stat-card--purple">
           <div class="stat-label">收入来源数</div>
           <div class="stat-value info">{{ sourceCount }}</div>
         </el-card>
@@ -125,12 +125,12 @@ function renderLineChart() {
         smooth: true,
         symbol: 'circle',
         symbolSize: 8,
-        lineStyle: { width: 3, color: '#409eff' },
-        itemStyle: { color: '#409eff' },
+        lineStyle: { width: 2.5, color: '#3b82f6' },
+        itemStyle: { color: '#3b82f6' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(64,158,255,0.3)' },
-            { offset: 1, color: 'rgba(64,158,255,0.02)' },
+            { offset: 0, color: 'rgba(59,130,246,0.18)' },
+            { offset: 1, color: 'rgba(59,130,246,0.01)' },
           ]),
         },
       },
@@ -142,7 +142,7 @@ function renderBarChart() {
   if (!barChart) return
   const names = breakdownData.value.map((d) => d.source_name)
   const totals = breakdownData.value.map((d) => d.total)
-  const colors = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#9b59b6']
+  const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#f87171', '#a78bfa', '#34d399']
 
   barChart.setOption({
     tooltip: {
@@ -237,26 +237,35 @@ onUnmounted(() => {
 }
 
 .stat-card {
-  border-radius: 8px;
+  border-radius: 10px;
+  border-left: 4px solid transparent;
 }
 
+.stat-card--blue  { border-left-color: #3b82f6; }
+.stat-card--green { border-left-color: #22c55e; }
+.stat-card--orange { border-left-color: #f59e0b; }
+.stat-card--purple { border-left-color: #8b5cf6; }
+
 .stat-label {
-  font-size: 13px;
-  color: #909399;
-  margin-bottom: 8px;
+  font-size: 12px;
+  color: #9aa3b0;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-value {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.5px;
 }
-.stat-value.primary { color: #409eff; }
-.stat-value.success { color: #67c23a; }
-.stat-value.warning { color: #e6a23c; }
-.stat-value.info    { color: #606266; }
+.stat-value.primary { color: #3b82f6; }
+.stat-value.success { color: #22c55e; }
+.stat-value.warning { color: #f59e0b; }
+.stat-value.info    { color: #8b5cf6; }
 
 .chart-card {
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .chart-header {
@@ -271,9 +280,9 @@ onUnmounted(() => {
 }
 
 .chart-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: #2d3748;
 }
 
 .chart-container {
