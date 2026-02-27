@@ -4,25 +4,25 @@
     <el-row :gutter="16" class="stat-row">
       <el-col :span="6">
         <el-card shadow="never" class="stat-card stat-card--blue">
-          <div class="stat-label">本年总收入</div>
+          <div class="stat-label">本年总余额</div>
           <div class="stat-value primary">¥{{ fmt(yearTotal) }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card stat-card--green">
-          <div class="stat-label">本月总收入</div>
+          <div class="stat-label">本月总余额</div>
           <div class="stat-value success">¥{{ fmt(monthTotal) }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card stat-card--orange">
-          <div class="stat-label">月均收入</div>
+          <div class="stat-label">月均余额</div>
           <div class="stat-value warning">¥{{ fmt(avgMonthly) }}</div>
         </el-card>
       </el-col>
       <el-col :span="6">
         <el-card shadow="never" class="stat-card stat-card--purple">
-          <div class="stat-label">收入来源数</div>
+          <div class="stat-label">来源数量</div>
           <div class="stat-value info">{{ sourceCount }}</div>
         </el-card>
       </el-col>
@@ -32,7 +32,7 @@
     <el-card shadow="never" class="chart-card">
       <template #header>
         <div class="chart-header">
-          <span class="chart-title">年度收入趋势</span>
+          <span class="chart-title">年度余额趋势</span>
           <el-select v-model="selectedYear" style="width: 100px" @change="loadYearlyData">
             <el-option v-for="y in yearOptions" :key="y" :label="y + ' 年'" :value="y" />
           </el-select>
@@ -45,7 +45,7 @@
     <el-card shadow="never" class="chart-card">
       <template #header>
         <div class="chart-header">
-          <span class="chart-title">月度收入来源占比</span>
+          <span class="chart-title">月度余额来源占比</span>
           <div class="chart-header-controls">
             <el-select v-model="breakdownYear" style="width: 100px" @change="loadBreakdownData">
               <el-option v-for="y in yearOptions" :key="y" :label="y + ' 年'" :value="y" />
@@ -58,13 +58,23 @@
       </template>
       <div ref="barChartEl" class="chart-container" v-loading="loadingBar" />
     </el-card>
+
+    <!-- 近年总量柱状图 -->
+    <el-card shadow="never" class="chart-card">
+      <template #header>
+        <div class="chart-header">
+          <span class="chart-title">近年余额总量</span>
+        </div>
+      </template>
+      <div ref="annualChartEl" class="chart-container" v-loading="loadingAnnual" />
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import * as echarts from 'echarts'
-import { incomeApi, type YearlyTrendItem, type MonthlyBreakdownItem } from '@/api/income'
+import { incomeApi, type YearlyTrendItem, type MonthlyBreakdownItem, type AnnualTotalItem } from '@/api/income'
 
 // ---- 年份选项 ----
 const currentYear = new Date().getFullYear()
@@ -84,6 +94,12 @@ const barChartEl = ref<HTMLDivElement>()
 let barChart: echarts.ECharts | null = null
 const loadingBar = ref(false)
 const breakdownData = ref<MonthlyBreakdownItem[]>([])
+
+// ---- 近年总量 ----
+const annualChartEl = ref<HTMLDivElement>()
+let annualChart: echarts.ECharts | null = null
+const loadingAnnual = ref(false)
+const annualData = ref<AnnualTotalItem[]>([])
 
 // ---- 来源数量 ----
 const sourceCount = ref(0)
@@ -119,7 +135,7 @@ function renderLineChart() {
     },
     series: [
       {
-        name: '月收入',
+        name: '月余额',
         type: 'line',
         data: totals,
         smooth: true,
@@ -180,6 +196,37 @@ function renderBarChart() {
   })
 }
 
+function renderAnnualChart() {
+  if (!annualChart) return
+  const years = annualData.value.map((d) => String(d.year))
+  const totals = annualData.value.map((d) => d.total)
+
+  annualChart.setOption({
+    tooltip: { trigger: 'axis', valueFormatter: (v: number) => `¥${fmt(v)}` },
+    grid: { left: 60, right: 30, top: 30, bottom: 40 },
+    xAxis: { type: 'category', data: years },
+    yAxis: {
+      type: 'value',
+      axisLabel: { formatter: (v: number) => `¥${(v / 1000).toFixed(0)}k` },
+    },
+    series: [
+      {
+        name: '年余额',
+        type: 'bar',
+        data: totals.map((v) => ({ value: v, itemStyle: { color: '#3b82f6' } })),
+        barMaxWidth: 64,
+        label: {
+          show: true,
+          position: 'top',
+          formatter: (p: any) => (p.value > 0 ? `¥${fmt(p.value)}` : ''),
+          fontSize: 12,
+          color: '#5a6478',
+        },
+      },
+    ],
+  })
+}
+
 async function loadYearlyData() {
   loadingLine.value = true
   try {
@@ -202,6 +249,17 @@ async function loadBreakdownData() {
   }
 }
 
+async function loadAnnualData() {
+  loadingAnnual.value = true
+  try {
+    const res = await incomeApi.getAnnualTotals(5)
+    annualData.value = res.data
+    renderAnnualChart()
+  } finally {
+    loadingAnnual.value = false
+  }
+}
+
 async function loadSourceCount() {
   const res = await incomeApi.getSources()
   sourceCount.value = res.data.length
@@ -210,18 +268,21 @@ async function loadSourceCount() {
 onMounted(async () => {
   lineChart = echarts.init(lineChartEl.value!)
   barChart = echarts.init(barChartEl.value!)
+  annualChart = echarts.init(annualChartEl.value!)
 
   window.addEventListener('resize', () => {
     lineChart?.resize()
     barChart?.resize()
+    annualChart?.resize()
   })
 
-  await Promise.all([loadYearlyData(), loadBreakdownData(), loadSourceCount()])
+  await Promise.all([loadYearlyData(), loadBreakdownData(), loadAnnualData(), loadSourceCount()])
 })
 
 onUnmounted(() => {
   lineChart?.dispose()
   barChart?.dispose()
+  annualChart?.dispose()
 })
 </script>
 

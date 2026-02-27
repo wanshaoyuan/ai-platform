@@ -68,3 +68,13 @@ class MonthlyBreakdownItem(BaseModel):
     source_name: str
     total: float
     percentage: float   # 0-100
+
+
+class AnnualTotalItem(BaseModel):
+    year: int
+    total: float
+
+
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
