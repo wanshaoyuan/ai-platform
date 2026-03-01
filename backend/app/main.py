@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.scheduler import start_scheduler, stop_scheduler
 from app.db import engine, Base
-from app.models import User, IncomeSource, IncomeRecord, BackupLog  # noqa: F401 触发模型注册
+from app.models import User, IncomeSource, IncomeRecord, BackupLog, DebtItem, RepaymentSchedule  # noqa: F401 触发模型注册
 from app.core.security import hash_password
 
 logging.basicConfig(level=logging.INFO)
@@ -28,11 +28,13 @@ from app.api.auth import router as auth_router
 from app.api.income.sources import router as sources_router
 from app.api.income.records import router as records_router
 from app.api.backup import router as backup_router
+from app.api.debt.debts import router as debts_router
 
 app.include_router(auth_router,    prefix="/api/auth",           tags=["认证"])
 app.include_router(sources_router, prefix="/api/income/sources", tags=["收入来源"])
 app.include_router(records_router, prefix="/api/income/records", tags=["收入记录"])
 app.include_router(backup_router,  prefix="/api/backup",         tags=["数据备份"])
+app.include_router(debts_router,   prefix="/api/debt",           tags=["债务管理"])
 
 
 # ---------- 生命周期 ----------

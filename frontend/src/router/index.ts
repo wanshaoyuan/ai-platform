@@ -33,6 +33,25 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '来源管理', module: 'income' },
       },
       // ---- 预留：更多模块在此扩展 ----
+      // ---- 债务管理模块 ----
+      {
+        path: 'debt/dashboard',
+        name: 'DebtDashboard',
+        component: () => import('@/views/debt/Dashboard.vue'),
+        meta: { title: '债务概览', module: 'debt' },
+      },
+      {
+        path: 'debt/list',
+        name: 'DebtList',
+        component: () => import('@/views/debt/Debts.vue'),
+        meta: { title: '债务管理', module: 'debt' },
+      },
+      {
+        path: 'debt/schedule/:id',
+        name: 'DebtSchedule',
+        component: () => import('@/views/debt/Schedule.vue'),
+        meta: { title: '还款计划', module: 'debt' },
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },

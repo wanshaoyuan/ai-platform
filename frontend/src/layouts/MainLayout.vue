@@ -5,7 +5,7 @@
       <!-- Logo 区域 -->
       <div class="logo-area">
         <el-icon v-if="isCollapsed" size="24" color="#3b82f6"><Platform /></el-icon>
-        <span v-else class="logo-text">AI 中台</span>
+        <span v-else class="logo-text">{{ settingsStore.siteTitle }}</span>
       </div>
 
       <!-- 导航菜单 -->
@@ -14,8 +14,8 @@
         :collapse="isCollapsed"
         :collapse-transition="false"
         router
-        background-color="#ffffff"
-        text-color="#5a6478"
+        background-color="var(--el-bg-color)"
+        text-color="var(--el-text-color-regular)"
         active-text-color="#3b82f6"
         class="side-menu"
       >
@@ -40,10 +40,21 @@
         </el-sub-menu>
 
         <!-- 预留模块占位 -->
-        <el-menu-item index="placeholder" disabled>
-          <el-icon><Plus /></el-icon>
-          <span>更多模块（即将上线）</span>
-        </el-menu-item>
+        <!-- 债务管理模块 -->
+        <el-sub-menu index="debt">
+          <template #title>
+            <el-icon><CreditCard /></el-icon>
+            <span>债务管理</span>
+          </template>
+          <el-menu-item index="/debt/dashboard">
+            <el-icon><DataLine /></el-icon>
+            <span>债务概览</span>
+          </el-menu-item>
+          <el-menu-item index="/debt/list">
+            <el-icon><List /></el-icon>
+            <span>债务列表</span>
+          </el-menu-item>
+        </el-sub-menu>
       </el-menu>
 
       <!-- 折叠按钮 -->
@@ -63,6 +74,17 @@
           </el-breadcrumb>
         </div>
         <div class="header-right">
+          <!-- 主题切换 -->
+          <el-tooltip :content="themeLabel" placement="bottom">
+            <el-button circle text @click="cycleTheme">
+              <el-icon size="18">
+                <Sunny v-if="settingsStore.themeMode === 'light'" />
+                <Moon v-else-if="settingsStore.themeMode === 'dark'" />
+                <Monitor v-else />
+              </el-icon>
+            </el-button>
+          </el-tooltip>
+
           <el-dropdown @command="handleCommand">
             <div class="user-info">
               <el-avatar size="small" :style="{ background: '#3b82f6' }">
@@ -73,6 +95,9 @@
             </div>
             <template #dropdown>
               <el-dropdown-menu>
+                <el-dropdown-item command="site-title">
+                  <el-icon><Edit /></el-icon> 修改标题
+                </el-dropdown-item>
                 <el-dropdown-item command="change-password">
                   <el-icon><Lock /></el-icon> 修改密码
                 </el-dropdown-item>
@@ -110,12 +135,32 @@
       <el-button type="primary" :loading="pwdSaving" @click="handleChangePwd">确认修改</el-button>
     </template>
   </el-dialog>
+
+  <!-- 修改网页标题弹窗 -->
+  <el-dialog v-model="titleDialogVisible" title="修改网页标题" width="380px" destroy-on-close>
+    <el-form @submit.prevent>
+      <el-form-item label="标题">
+        <el-input
+          v-model="titleInput"
+          placeholder="请输入网页标题"
+          maxlength="20"
+          show-word-limit
+          clearable
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="titleDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handleSaveTitle">保存</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore, type ThemeMode } from '@/stores/settings'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { authApi } from '@/api/auth'
@@ -123,6 +168,7 @@ import { authApi } from '@/api/auth'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
 
 const isCollapsed = ref(false)
 
@@ -131,6 +177,30 @@ const currentTitle = computed(() => route.meta?.title as string | undefined)
 const userInitial = computed(() =>
   (authStore.user?.username || 'U').charAt(0).toUpperCase()
 )
+
+// ---- 主题切换 ----
+const themeLabels: Record<ThemeMode, string> = {
+  light: '浅色模式',
+  dark: '深色模式',
+  system: '跟随系统',
+}
+const themeLabel = computed(() => themeLabels[settingsStore.themeMode])
+const themeOrder: ThemeMode[] = ['light', 'dark', 'system']
+
+function cycleTheme() {
+  const idx = themeOrder.indexOf(settingsStore.themeMode)
+  settingsStore.setTheme(themeOrder[(idx + 1) % themeOrder.length])
+}
+
+// ---- 修改标题 ----
+const titleDialogVisible = ref(false)
+const titleInput = ref('')
+
+function handleSaveTitle() {
+  settingsStore.setTitle(titleInput.value)
+  titleDialogVisible.value = false
+  ElMessage.success('标题已更新')
+}
 
 // ---- 修改密码 ----
 const pwdDialogVisible = ref(false)
@@ -187,6 +257,9 @@ function handleCommand(cmd: string) {
     pwdForm.newPassword = ''
     pwdForm.confirmPassword = ''
     pwdDialogVisible.value = true
+  } else if (cmd === 'site-title') {
+    titleInput.value = settingsStore.siteTitle
+    titleDialogVisible.value = true
   }
 }
 </script>
@@ -199,12 +272,12 @@ function handleCommand(cmd: string) {
 
 /* 侧边栏 */
 .sidebar {
-  background: #ffffff;
+  background: var(--el-bg-color);
   display: flex;
   flex-direction: column;
   transition: width 0.25s;
   overflow: hidden;
-  border-right: 1px solid #eef0f4;
+  border-right: 1px solid var(--el-border-color-light);
 }
 
 .logo-area {
@@ -212,7 +285,7 @@ function handleCommand(cmd: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-bottom: 1px solid #eef0f4;
+  border-bottom: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
 }
 
@@ -231,27 +304,49 @@ function handleCommand(cmd: string) {
   overflow-x: hidden;
 }
 
+/* 激活菜单项背景色——覆盖 Element Plus 默认的黑色 */
+.side-menu :deep(.el-menu-item.is-active) {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+  border-radius: 6px;
+}
+.side-menu :deep(.el-menu-item.is-active:hover) {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+.side-menu :deep(.el-menu-item:hover) {
+  background-color: var(--el-fill-color-light) !important;
+  border-radius: 6px;
+}
+
+/* sub-menu 标题展开/激活态背景——覆盖默认黑色 */
+.side-menu :deep(.el-sub-menu.is-active > .el-sub-menu__title),
+.side-menu :deep(.el-sub-menu.is-opened > .el-sub-menu__title) {
+  background-color: var(--el-fill-color-light) !important;
+}
+.side-menu :deep(.el-sub-menu__title:hover) {
+  background-color: var(--el-fill-color-light) !important;
+}
+
 .collapse-btn {
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #b0b9c8;
+  color: var(--el-text-color-placeholder);
   cursor: pointer;
-  border-top: 1px solid #eef0f4;
+  border-top: 1px solid var(--el-border-color-light);
   flex-shrink: 0;
   transition: background 0.2s, color 0.2s;
 }
 .collapse-btn:hover {
-  background: #f5f8ff;
+  background: var(--el-fill-color-light);
   color: #3b82f6;
 }
 
 /* 顶部导航 */
 .top-header {
   height: 56px;
-  background: #fff;
-  border-bottom: 1px solid #eef0f4;
+  background: var(--el-bg-color);
+  border-bottom: 1px solid var(--el-border-color-light);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -261,7 +356,7 @@ function handleCommand(cmd: string) {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
 }
 
 .user-info {
@@ -274,17 +369,17 @@ function handleCommand(cmd: string) {
   transition: background 0.2s;
 }
 .user-info:hover {
-  background: #f0f6ff;
+  background: var(--el-fill-color-light);
 }
 
 .username {
   font-size: 14px;
-  color: #3c4a5e;
+  color: var(--el-text-color-primary);
 }
 
 /* 主内容区 */
 .main-content {
-  background: #f7f9fc;
+  background: var(--el-fill-color-lighter);
   overflow-y: auto;
   padding: 20px;
 }
