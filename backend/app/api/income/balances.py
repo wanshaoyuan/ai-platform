@@ -513,8 +513,8 @@ _MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 # 兼容 "YYYY/M/D"、"YYYY/MM/DD"、"YYYY-M-D" 等日期格式 → 提取 YYYY-MM
 _DATE_RE = re.compile(r"^(\d{4})[/\-](\d{1,2})[/\-]\d{1,2}$")
 
-# 总计列的各种写法（导入时忽略）
-_TOTAL_COLS = {"月份", "总资产", "总额", "合计", "total", ""}
+# 总计列（导入时忽略）
+_TOTAL_COLS = {"月份", "总资产", "总额", ""}
 
 
 def _normalize_month(raw: str) -> str:
