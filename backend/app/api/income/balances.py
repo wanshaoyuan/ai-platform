@@ -510,6 +510,26 @@ def export_csv(
 # ── CSV 导入 ───────────────────────────────────────────────────────────────────
 
 _MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+# 兼容 "YYYY/M/D"、"YYYY/MM/DD"、"YYYY-M-D" 等日期格式 → 提取 YYYY-MM
+_DATE_RE = re.compile(r"^(\d{4})[/\-](\d{1,2})[/\-]\d{1,2}$")
+
+# 总计列的各种写法（导入时忽略）
+_TOTAL_COLS = {"月份", "总资产", "总额", "合计", "total", ""}
+
+
+def _normalize_month(raw: str) -> str:
+    """
+    将各种日期/月份格式统一转为 YYYY-MM。
+    支持：YYYY-MM、YYYY/M/D、YYYY-M-D 等。
+    无法识别时原样返回。
+    """
+    s = raw.strip()
+    if _MONTH_RE.match(s):
+        return s
+    m = _DATE_RE.match(s)
+    if m:
+        return f"{m.group(1)}-{int(m.group(2)):02d}"
+    return s
 
 
 @router.post("/import/csv", status_code=status.HTTP_200_OK)
@@ -533,7 +553,7 @@ def import_csv(
     if not reader.fieldnames:
         raise HTTPException(status_code=400, detail="CSV 文件为空或格式不正确")
 
-    acc_columns = [f for f in reader.fieldnames if f not in ("月份", "总资产", "")]
+    acc_columns = [f for f in reader.fieldnames if f not in _TOTAL_COLS]
 
     # 确保账户名称都存在（不存在则自动创建）
     acc_map: dict[str, Account] = {}
@@ -559,7 +579,7 @@ def import_csv(
     skipped = 0
 
     for row in reader:
-        month = (row.get("月份") or "").strip()
+        month = _normalize_month(row.get("月份") or "")
         if not _MONTH_RE.match(month):
             skipped += 1
             continue
