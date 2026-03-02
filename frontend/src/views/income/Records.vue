@@ -2,7 +2,17 @@
   <div class="records-page">
     <div class="page-toolbar">
       <span class="page-title">月度余额录入</span>
-      <el-button type="primary" @click="openDialog()">+ 录入月份</el-button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <el-button @click="handleExport" :loading="exporting">
+          <el-icon><Download /></el-icon> 导出 CSV
+        </el-button>
+        <el-upload :show-file-list="false" accept=".csv" :before-upload="handleImport">
+          <el-button :loading="importing">
+            <el-icon><Upload /></el-icon> 导入 CSV
+          </el-button>
+        </el-upload>
+        <el-button type="primary" @click="openDialog()">+ 录入月份</el-button>
+      </div>
     </div>
 
     <!-- 月份快照表格 -->
@@ -54,7 +64,7 @@
             style="width:100%"
           />
         </el-form-item>
-        <el-divider content-position="left" style="margin:8px 0 16px">各账户余额（元）</el-divider>
+        <el-divider content-position="left" style="margin:8px 0 16px">各来源余额（元）</el-divider>
         <el-form-item
           v-for="acc in accounts"
           :key="acc.id"
@@ -131,9 +141,7 @@ const formTotal = computed(() =>
 function openDialog(month?: string) {
   editMonth.value = month ?? null
   form.month = month ?? ''
-  // 初始化所有账户余额为 0
   accounts.value.forEach(a => { form.balances[a.id] = 0 })
-
   if (month) {
     const snap = snapshots.value.find(s => s.month === month)
     if (snap) {
@@ -175,6 +183,48 @@ async function handleDelete(month: string) {
   } catch {
     ElMessage.error('删除失败')
   }
+}
+
+// ── 导出 CSV ──────────────────────────────────────────────────────────────────
+const exporting = ref(false)
+
+async function handleExport() {
+  exporting.value = true
+  try {
+    const res = await incomeApi.exportCsv()
+    const blob = new Blob([res.data as BlobPart], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const now = new Date()
+    const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`
+    a.download = `balance_export_${stamp}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
+// ── 导入 CSV ──────────────────────────────────────────────────────────────────
+const importing = ref(false)
+
+async function handleImport(file: File) {
+  importing.value = true
+  try {
+    const res = await incomeApi.importCsv(file)
+    const { inserted, updated, skipped } = res.data
+    ElMessage.success(`导入完成：新增 ${inserted} 条，更新 ${updated} 条，跳过 ${skipped} 条`)
+    await loadData()
+  } catch (e: any) {
+    ElMessage.error(e?.response?.data?.detail || '导入失败')
+  } finally {
+    importing.value = false
+  }
+  return false
 }
 
 onMounted(loadData)

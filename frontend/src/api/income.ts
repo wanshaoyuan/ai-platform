@@ -77,9 +77,14 @@ export const incomeApi = {
     return http.delete(`/income/balances/${month}`)
   },
 
-  // 趋势数据（折线图）
+  // 趋势数据（折线图）—— 按月
   getTrend(months = 12) {
     return http.get<AccountTrend[]>('/income/stats/trend', { params: { months } })
+  },
+
+  // 趋势数据（折线图）—— 按年
+  getTrendYearly(years = 5) {
+    return http.get<AccountTrend[]>('/income/stats/trend/yearly', { params: { years } })
   },
 
   // 导出 CSV

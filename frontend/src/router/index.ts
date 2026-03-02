@@ -30,7 +30,7 @@ const routes: RouteRecordRaw[] = [
         path: 'income/accounts',
         name: 'IncomeAccounts',
         component: () => import('@/views/income/Accounts.vue'),
-        meta: { title: '账户管理', module: 'income' },
+        meta: { title: '收入来源管理', module: 'income' },
       },
       // ---- 预留：更多模块在此扩展 ----
       // ---- 债务管理模块 ----

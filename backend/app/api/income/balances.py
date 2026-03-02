@@ -349,6 +349,101 @@ def get_trend(
     return result
 
 
+# ── 年度趋势统计（折线图） ─────────────────────────────────────────────────────
+
+@router.get("/stats/trend/yearly", response_model=list[AccountTrendRead])
+def get_trend_yearly(
+    years: int = Query(5, ge=1, le=20, description="最近 N 年"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    返回各账户余额的年度趋势 + 总资产趋势。
+    每年取该年最后一个有记录的月份的余额作为年末值。
+    结果末尾附加一条「总资产」合计折线（account_id=0）。
+    """
+    from sqlalchemy import func as sqlfunc
+
+    # 取最近 N 年有数据的年份（升序）
+    all_months_q = (
+        db.query(MonthlyBalance.month)
+        .filter(MonthlyBalance.user_id == current_user.id)
+        .distinct()
+        .order_by(MonthlyBalance.month.desc())
+        .all()
+    )
+    if not all_months_q:
+        return []
+
+    all_months_list = sorted(m for (m,) in all_months_q)
+
+    # 提取年份并限制到最近 N 年
+    all_years_set = sorted({m[:4] for m in all_months_list}, reverse=True)[:years]
+    selected_years = sorted(all_years_set)
+
+    # 每年取最后一个月
+    year_to_last_month: dict[str, str] = {}
+    for month in reversed(all_months_list):
+        year = month[:4]
+        if year in selected_years and year not in year_to_last_month:
+            year_to_last_month[year] = month
+
+    sorted_year_months = [year_to_last_month[y] for y in selected_years if y in year_to_last_month]
+
+    records = (
+        db.query(MonthlyBalance)
+        .filter(
+            MonthlyBalance.user_id == current_user.id,
+            MonthlyBalance.month.in_(sorted_year_months),
+        )
+        .all()
+    )
+
+    accs = (
+        db.query(Account)
+        .filter(Account.user_id == current_user.id, Account.is_active == True)  # noqa: E712
+        .order_by(Account.sort_order, Account.id)
+        .all()
+    )
+
+    # account_id → {month → balance}
+    data: dict[int, dict[str, float]] = {a.id: {} for a in accs}
+    for r in records:
+        if r.account_id in data:
+            data[r.account_id][r.month] = r.balance
+
+    # X 轴用年份标签，但数据点用对应的最后月份取值
+    x_labels = [m[:4] for m in sorted_year_months]
+
+    result: list[AccountTrendRead] = []
+
+    for acc in accs:
+        points = [
+            TrendPoint(month=x_labels[i], value=round(data[acc.id].get(m, 0.0), 2))
+            for i, m in enumerate(sorted_year_months)
+        ]
+        result.append(AccountTrendRead(
+            account_id=acc.id,
+            account_name=acc.name,
+            data=points,
+        ))
+
+    total_points = [
+        TrendPoint(
+            month=x_labels[i],
+            value=round(sum(data[a.id].get(m, 0.0) for a in accs), 2),
+        )
+        for i, m in enumerate(sorted_year_months)
+    ]
+    result.append(AccountTrendRead(
+        account_id=0,
+        account_name="总资产",
+        data=total_points,
+    ))
+
+    return result
+
+
 # ── CSV 导出 ───────────────────────────────────────────────────────────────────
 
 @router.get("/export/csv")

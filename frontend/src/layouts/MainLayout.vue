@@ -35,7 +35,7 @@
           </el-menu-item>
           <el-menu-item index="/income/accounts">
             <el-icon><Setting /></el-icon>
-            <span>账户管理</span>
+            <span>收入来源管理</span>
           </el-menu-item>
         </el-sub-menu>
 

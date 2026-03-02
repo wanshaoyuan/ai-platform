@@ -30,12 +30,12 @@
       </el-col>
     </el-row>
 
-    <!-- 趋势图控制栏 -->
+    <!-- 余额趋势折线图（按月/按年切换） -->
     <el-card shadow="never" class="chart-card" v-loading="loadingTrend">
       <template #header>
         <div class="chart-header">
           <span class="chart-title">余额趋势</span>
-          <div style="display:flex;align-items:center;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <!-- 账户筛选 -->
             <el-checkbox-group v-model="visibleAccounts" size="small">
               <el-checkbox-button
@@ -47,11 +47,31 @@
                 {{ acc.account_name }}
               </el-checkbox-button>
             </el-checkbox-group>
+            <!-- 按月/按年 切换 -->
+            <el-radio-group v-model="viewMode" size="small" @change="onViewModeChange">
+              <el-radio-button value="month">按月</el-radio-button>
+              <el-radio-button value="year">按年</el-radio-button>
+            </el-radio-group>
             <!-- 时间范围 -->
-            <el-select v-model="trendMonths" style="width:100px" @change="loadTrend">
+            <el-select
+              v-if="viewMode === 'month'"
+              v-model="trendMonths"
+              style="width:100px"
+              @change="loadTrend"
+            >
               <el-option label="近 6 月" :value="6" />
               <el-option label="近 12 月" :value="12" />
               <el-option label="近 24 月" :value="24" />
+            </el-select>
+            <el-select
+              v-else
+              v-model="trendYears"
+              style="width:100px"
+              @change="loadTrend"
+            >
+              <el-option label="近 3 年" :value="3" />
+              <el-option label="近 5 年" :value="5" />
+              <el-option label="近 10 年" :value="10" />
             </el-select>
           </div>
         </div>
@@ -59,12 +79,12 @@
       <div ref="lineChartEl" class="chart-container" />
     </el-card>
 
-    <!-- 最新月份各账户余额柱状图 -->
+    <!-- 最新月份各来源余额折线图 -->
     <el-card shadow="never" class="chart-card" v-loading="loadingTrend">
       <template #header>
-        <span class="chart-title">{{ snapshots[0]?.month ?? '' }} 各账户余额</span>
+        <span class="chart-title">{{ snapshots[0]?.month ?? '' }} 各来源余额</span>
       </template>
-      <div ref="barChartEl" class="chart-container" />
+      <div ref="latestChartEl" class="chart-container" />
     </el-card>
   </div>
 </template>
@@ -74,7 +94,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import { incomeApi, type AccountTrend, type MonthlySnapshot } from '@/api/income'
 
-// ── 颜色板（按索引分配，支持任意数量账户）──────────────────────────────────
+// ── 颜色板 ───────────────────────────────────────────────────────────────────
 const PALETTE = [
   '#3b82f6', '#22c55e', '#f59e0b', '#06b6d4',
   '#8b5cf6', '#f87171', '#ec4899', '#14b8a6',
@@ -82,7 +102,6 @@ const PALETTE = [
 ]
 const TOTAL_COLOR = '#1e293b'
 
-// account_id → color（动态生成，0 = 总资产）
 const colorMap = new Map<number, string>([[0, TOTAL_COLOR]])
 function accountColor(id: number): string {
   if (!colorMap.has(id)) {
@@ -92,24 +111,25 @@ function accountColor(id: number): string {
   return colorMap.get(id) ?? TOTAL_COLOR
 }
 
-const loadingTrend = ref(false)
+// ── 视图状态 ──────────────────────────────────────────────────────────────────
+const viewMode = ref<'month' | 'year'>('month')
 const trendMonths = ref(12)
+const trendYears = ref(5)
+const loadingTrend = ref(false)
 const trendData = ref<AccountTrend[]>([])
 const snapshots = ref<MonthlySnapshot[]>([])
 
 const allAccounts = computed(() => trendData.value.filter(a => a.account_id !== 0))
 const visibleAccounts = ref<number[]>([])
 
-// 初始化时默认显示所有账户
 watch(allAccounts, (list) => {
   if (visibleAccounts.value.length === 0 && list.length > 0) {
     visibleAccounts.value = list.map(a => a.account_id)
-    // 预分配颜色
     list.forEach(a => accountColor(a.account_id))
   }
 }, { immediate: true })
 
-// ── 统计卡片数值 ─────────────────────────────────────────────────────────────
+// ── 统计卡片 ──────────────────────────────────────────────────────────────────
 const latestTotal = computed(() => snapshots.value[0]?.total ?? 0)
 const monthDiff = computed(() => {
   const s = snapshots.value
@@ -122,16 +142,17 @@ function fmt(n: number) {
   return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-// ── ECharts ──────────────────────────────────────────────────────────────────
+// ── ECharts ───────────────────────────────────────────────────────────────────
 const lineChartEl = ref<HTMLDivElement>()
-const barChartEl = ref<HTMLDivElement>()
+const latestChartEl = ref<HTMLDivElement>()
 let lineChart: echarts.ECharts | null = null
-let barChart: echarts.ECharts | null = null
+let latestChart: echarts.ECharts | null = null
 
+// 通用折线图渲染（按月趋势 & 按年趋势复用同一函数）
 function renderLineChart() {
   if (!lineChart) return
   const totalLine = trendData.value.find(a => a.account_id === 0)
-  const months = totalLine?.data.map(d => d.month) ?? []
+  const xLabels = totalLine?.data.map(d => d.month) ?? []
 
   const series: echarts.SeriesOption[] = []
 
@@ -170,10 +191,11 @@ function renderLineChart() {
     },
     legend: {
       data: ['总资产', ...trendData.value.filter(a => a.account_id !== 0).map(a => a.account_name)],
-      bottom: 0, type: 'scroll',
+      bottom: 0,
+      type: 'scroll',
     },
     grid: { left: 70, right: 20, top: 20, bottom: 50 },
-    xAxis: { type: 'category', data: months, boundaryGap: false },
+    xAxis: { type: 'category', data: xLabels, boundaryGap: false },
     yAxis: {
       type: 'value',
       axisLabel: { formatter: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
@@ -182,35 +204,59 @@ function renderLineChart() {
   }, true)
 }
 
-function renderBarChart() {
-  if (!barChart || !snapshots.value.length) return
+// 最新月份各来源余额 —— 折线图（X轴为来源名称，一条线）
+function renderLatestChart() {
+  if (!latestChart || !snapshots.value.length) return
   const latest = snapshots.value[0]
   if (!latest) return
-  const names = latest.items.map(i => i.account_name)
-  const values = latest.items.map(i => i.balance)
 
-  barChart.setOption({
+  // 按当前账户顺序排列（allAccounts 已排好序）
+  const orderedItems = allAccounts.value
+    .map(acc => latest.items.find(i => i.account_id === acc.account_id))
+    .filter((i): i is NonNullable<typeof i> => !!i)
+
+  const names = orderedItems.map(i => i.account_name)
+  const values = orderedItems.map(i => i.balance)
+  const colors = orderedItems.map(i => accountColor(i.account_id))
+
+  latestChart.setOption({
     tooltip: {
       trigger: 'axis',
-      formatter: (params: any) => `${params[0].name}：¥${fmt(params[0].value)}`,
+      formatter: (params: any) => `${params[0].name}：¥${fmt(params[0].value as number)}`,
     },
-    grid: { left: 80, right: 20, top: 20, bottom: 40 },
-    xAxis: { type: 'category', data: names },
+    grid: { left: 70, right: 20, top: 20, bottom: 50 },
+    xAxis: {
+      type: 'category',
+      data: names,
+      axisLabel: { interval: 0, rotate: names.length > 6 ? 30 : 0 },
+      boundaryGap: false,
+    },
     yAxis: {
       type: 'value',
       axisLabel: { formatter: (v: number) => `¥${(v / 10000).toFixed(0)}万` },
     },
     series: [{
-      type: 'bar',
+      type: 'line',
       data: values.map((v, i) => ({
         value: v,
-        itemStyle: { color: accountColor(latest.items[i]?.account_id ?? 0) },
+        itemStyle: { color: colors[i] ?? TOTAL_COLOR },
       })),
-      barMaxWidth: 60,
+      smooth: true,
+      symbolSize: 8,
+      lineStyle: { width: 2, color: '#3b82f6' },
+      itemStyle: { color: '#3b82f6' },
       label: {
-        show: true, position: 'top',
-        formatter: (p: any) => p.value > 0 ? `¥${fmt(p.value)}` : '',
-        fontSize: 11, color: '#5a6478',
+        show: true,
+        position: 'top',
+        formatter: (p: any) => (p.value as number) > 0 ? `¥${fmt(p.value as number)}` : '',
+        fontSize: 11,
+        color: '#5a6478',
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: 'rgba(59,130,246,0.18)' },
+          { offset: 1, color: 'rgba(59,130,246,0.01)' },
+        ]),
       },
     }],
   })
@@ -218,27 +264,36 @@ function renderBarChart() {
 
 watch(visibleAccounts, renderLineChart)
 
+function onViewModeChange() {
+  loadTrend()
+}
+
 async function loadTrend() {
   loadingTrend.value = true
   try {
-    const [t, s] = await Promise.all([
-      incomeApi.getTrend(trendMonths.value),
+    const [tRes, sRes] = await Promise.all([
+      viewMode.value === 'month'
+        ? incomeApi.getTrend(trendMonths.value)
+        : incomeApi.getTrendYearly(trendYears.value),
       incomeApi.listMonths(trendMonths.value),
     ])
-    trendData.value = t.data
-    snapshots.value = s.data
+    trendData.value = tRes.data
+    snapshots.value = sRes.data
     renderLineChart()
-    renderBarChart()
+    renderLatestChart()
   } finally {
     loadingTrend.value = false
   }
 }
 
-const resizeHandler = () => { lineChart?.resize(); barChart?.resize() }
+const resizeHandler = () => {
+  lineChart?.resize()
+  latestChart?.resize()
+}
 
 onMounted(async () => {
   lineChart = echarts.init(lineChartEl.value!)
-  barChart = echarts.init(barChartEl.value!)
+  latestChart = echarts.init(latestChartEl.value!)
   window.addEventListener('resize', resizeHandler)
   await loadTrend()
 })
@@ -246,7 +301,7 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('resize', resizeHandler)
   lineChart?.dispose()
-  barChart?.dispose()
+  latestChart?.dispose()
 })
 </script>
 
