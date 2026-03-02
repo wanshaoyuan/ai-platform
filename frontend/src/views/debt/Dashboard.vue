@@ -70,6 +70,7 @@ function renderBarChart() {
       formatter: (params: any) => {
         const idx = params[0].dataIndex
         const d = barData.value[idx]
+        if (!d) return ''
         return `
           <b>${d.name}</b><br/>
           剩余本金：¥${fmt(d.current_balance)}<br/>

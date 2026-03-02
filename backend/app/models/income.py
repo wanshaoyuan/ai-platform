@@ -1,61 +1,71 @@
-from datetime import date, datetime
+from datetime import datetime
 from sqlalchemy import (
-    Integer, String, Boolean, Float, Date, DateTime,
-    ForeignKey, UniqueConstraint, CheckConstraint, func, Index,
+    Integer, String, Float, DateTime, ForeignKey,
+    UniqueConstraint, CheckConstraint, Index, func, Boolean,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
 
-class IncomeSource(Base):
-    __tablename__ = "income_sources"
+class Account(Base):
+    """
+    用户自定义账户表。
+    每个用户可以创建自己的账户（如银行卡、支付账户等）。
+    """
+    __tablename__ = "accounts"
     __table_args__ = (
-        UniqueConstraint("user_id", "name", name="uq_source_user_name"),
+        UniqueConstraint("user_id", "name", name="uq_account_user_name"),
+        Index("idx_accounts_user_id", "user_id"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    name: Mapped[str] = mapped_column(String(64), nullable=False)
-    icon: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    name: Mapped[str] = mapped_column(String(32), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+    user: Mapped["User"] = relationship("User", back_populates="accounts")  # noqa: F821
+    monthly_balances: Mapped[list["MonthlyBalance"]] = relationship(
+        "MonthlyBalance", back_populates="account", cascade="all, delete-orphan"
     )
 
-    user: Mapped["User"] = relationship("User", back_populates="income_sources")  # noqa: F821
-    records: Mapped[list["IncomeRecord"]] = relationship(
-        "IncomeRecord", back_populates="source"
-    )
 
-
-class IncomeRecord(Base):
-    __tablename__ = "income_records"
+class MonthlyBalance(Base):
+    """
+    月度余额快照表。
+    每条记录 = 某用户某月某账户的余额快照。
+    同一用户同一月同一账户只允许一条记录（通过唯一约束保证）。
+    """
+    __tablename__ = "monthly_balances"
     __table_args__ = (
-        CheckConstraint("amount > 0", name="ck_amount_positive"),
-        Index("idx_income_records_user_date", "user_id", "record_date"),
+        UniqueConstraint("user_id", "month", "account_id", name="uq_balance_user_month_account"),
+        CheckConstraint("balance >= 0", name="ck_balance_non_negative"),
+        Index("idx_monthly_balances_user_month", "user_id", "month"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
-    source_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("income_sources.id", ondelete="RESTRICT"), nullable=False,
-        index=True,
+    # 月份格式：YYYY-MM，如 "2025-09"
+    month: Mapped[str] = mapped_column(String(7), nullable=False)
+    # 账户 ID，对应 accounts 表的 id
+    account_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False
     )
-    amount: Mapped[float] = mapped_column(Float, nullable=False)
-    record_date: Mapped[date] = mapped_column(Date, nullable=False)
-    note: Mapped[str | None] = mapped_column(String(512), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, server_default=func.now()
-    )
+    # 账户名称（冗余存储，方便查询展示，即使账户被重命名历史数据仍保留原名）
+    account_name: Mapped[str] = mapped_column(String(32), nullable=False)
+    balance: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-    user: Mapped["User"] = relationship("User", back_populates="income_records")  # noqa: F821
-    source: Mapped["IncomeSource"] = relationship("IncomeSource", back_populates="records")
+    user: Mapped["User"] = relationship("User", back_populates="monthly_balances")  # noqa: F821
+    account: Mapped["Account"] = relationship("Account", back_populates="monthly_balances")

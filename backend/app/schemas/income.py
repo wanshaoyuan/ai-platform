@@ -1,78 +1,71 @@
-from datetime import date, datetime
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-# ---------- IncomeSource ----------
+# ── 账户 CRUD ──────────────────────────────────────────────────────────────────
 
-class IncomeSourceCreate(BaseModel):
-    name: str = Field(..., min_length=1, max_length=64)
-    icon: str | None = None
-    sort_order: int = 0
-
-
-class IncomeSourceUpdate(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=64)
-    icon: str | None = None
-    is_active: bool | None = None
-    sort_order: int | None = None
+class AccountCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=32)
+    sort_order: int = Field(0, ge=0)
 
 
-class IncomeSourceRead(BaseModel):
+class AccountUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=32)
+    sort_order: int | None = Field(None, ge=0)
+
+
+class AccountRead(BaseModel):
     id: int
     name: str
-    icon: str | None
-    is_active: bool
     sort_order: int
-    created_at: datetime
+    is_active: bool
 
     model_config = {"from_attributes": True}
 
 
-# ---------- IncomeRecord ----------
+# ── 月度余额快照 ───────────────────────────────────────────────────────────────
 
-class IncomeRecordCreate(BaseModel):
-    source_id: int
-    amount: float = Field(..., gt=0)
-    record_date: date
-    note: str | None = Field(None, max_length=512)
-
-
-class IncomeRecordUpdate(BaseModel):
-    source_id: int | None = None
-    amount: float | None = Field(None, gt=0)
-    record_date: date | None = None
-    note: str | None = Field(None, max_length=512)
+class BalanceItem(BaseModel):
+    """单个账户的余额"""
+    account_id: int = Field(..., ge=1)
+    balance: float = Field(..., ge=0)
 
 
-class IncomeRecordRead(BaseModel):
-    id: int
-    source_id: int
-    source_name: str
-    amount: float
-    record_date: date
-    note: str | None
-    created_at: datetime
+class MonthlyBalanceUpsert(BaseModel):
+    """创建/更新某月所有账户余额（批量）"""
+    month: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$", description="格式：YYYY-MM")
+    balances: list[BalanceItem] = Field(..., min_length=1)
+
+
+class MonthlyBalanceRead(BaseModel):
+    account_id: int
+    account_name: str
+    balance: float
+    updated_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-# ---------- 统计聚合 ----------
-
-class YearlyTrendItem(BaseModel):
-    month: int          # 1-12
+class MonthlySnapshotRead(BaseModel):
+    """某月全部账户余额 + 总额"""
+    month: str
     total: float
+    items: list[MonthlyBalanceRead]
 
 
-class MonthlyBreakdownItem(BaseModel):
-    source_id: int
-    source_name: str
-    total: float
-    percentage: float   # 0-100
+# ── 图表统计 ───────────────────────────────────────────────────────────────────
+
+class TrendPoint(BaseModel):
+    """折线图单个数据点"""
+    month: str
+    value: float
 
 
-class AnnualTotalItem(BaseModel):
-    year: int
-    total: float
+class AccountTrendRead(BaseModel):
+    """单个账户的余额趋势"""
+    account_id: int
+    account_name: str
+    data: list[TrendPoint]
 
 
 class ChangePasswordRequest(BaseModel):

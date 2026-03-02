@@ -1,6 +1,6 @@
 from .user import User
-from .income import IncomeSource, IncomeRecord
+from .income import Account, MonthlyBalance
 from .backup import BackupLog
 from .debt import DebtItem, RepaymentSchedule
 
-__all__ = ["User", "IncomeSource", "IncomeRecord", "BackupLog", "DebtItem", "RepaymentSchedule"]
+__all__ = ["User", "Account", "MonthlyBalance", "BackupLog", "DebtItem", "RepaymentSchedule"]

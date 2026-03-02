@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layouts/MainLayout.vue'),
     redirect: '/income/dashboard',
     children: [
-      // ---- 收入管理模块 ----
+      // ---- 余额管理模块 ----
       {
         path: 'income/dashboard',
         name: 'IncomeDashboard',
@@ -24,13 +24,13 @@ const routes: RouteRecordRaw[] = [
         path: 'income/records',
         name: 'IncomeRecords',
         component: () => import('@/views/income/Records.vue'),
-        meta: { title: '余额记录', module: 'income' },
+        meta: { title: '余额录入', module: 'income' },
       },
       {
-        path: 'income/sources',
-        name: 'IncomeSources',
-        component: () => import('@/views/income/Sources.vue'),
-        meta: { title: '来源管理', module: 'income' },
+        path: 'income/accounts',
+        name: 'IncomeAccounts',
+        component: () => import('@/views/income/Accounts.vue'),
+        meta: { title: '账户管理', module: 'income' },
       },
       // ---- 预留：更多模块在此扩展 ----
       // ---- 债务管理模块 ----

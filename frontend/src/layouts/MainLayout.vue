@@ -31,11 +31,11 @@
           </el-menu-item>
           <el-menu-item index="/income/records">
             <el-icon><List /></el-icon>
-            <span>余额记录</span>
+            <span>余额录入</span>
           </el-menu-item>
-          <el-menu-item index="/income/sources">
+          <el-menu-item index="/income/accounts">
             <el-icon><Setting /></el-icon>
-            <span>来源管理</span>
+            <span>账户管理</span>
           </el-menu-item>
         </el-sub-menu>
 
@@ -189,7 +189,8 @@ const themeOrder: ThemeMode[] = ['light', 'dark', 'system']
 
 function cycleTheme() {
   const idx = themeOrder.indexOf(settingsStore.themeMode)
-  settingsStore.setTheme(themeOrder[(idx + 1) % themeOrder.length])
+  const next = themeOrder[(idx + 1) % themeOrder.length] ?? 'system'
+  settingsStore.setTheme(next)
 }
 
 // ---- 修改标题 ----
