@@ -1,13 +1,21 @@
 from .user import UserCreate, UserRead, Token, TokenData
 from .income import (
-    IncomeSourceCreate, IncomeSourceUpdate, IncomeSourceRead,
-    IncomeRecordCreate, IncomeRecordUpdate, IncomeRecordRead,
-    YearlyTrendItem, MonthlyBreakdownItem,
+    AccountCreate,
+    AccountUpdate,
+    AccountRead,
+    BalanceItem,
+    MonthlyBalanceUpsert,
+    MonthlyBalanceRead,
+    MonthlySnapshotRead,
+    AccountTrendRead,
+    TrendPoint,
+    ChangePasswordRequest,
 )
 
 __all__ = [
     "UserCreate", "UserRead", "Token", "TokenData",
-    "IncomeSourceCreate", "IncomeSourceUpdate", "IncomeSourceRead",
-    "IncomeRecordCreate", "IncomeRecordUpdate", "IncomeRecordRead",
-    "YearlyTrendItem", "MonthlyBreakdownItem",
+    "AccountCreate", "AccountUpdate", "AccountRead",
+    "BalanceItem", "MonthlyBalanceUpsert", "MonthlyBalanceRead",
+    "MonthlySnapshotRead", "AccountTrendRead", "TrendPoint",
+    "ChangePasswordRequest",
 ]

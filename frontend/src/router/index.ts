@@ -13,7 +13,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/layouts/MainLayout.vue'),
     redirect: '/income/dashboard',
     children: [
-      // ---- 收入管理模块 ----
+      // ---- 余额管理模块 ----
       {
         path: 'income/dashboard',
         name: 'IncomeDashboard',
@@ -24,15 +24,34 @@ const routes: RouteRecordRaw[] = [
         path: 'income/records',
         name: 'IncomeRecords',
         component: () => import('@/views/income/Records.vue'),
-        meta: { title: '余额记录', module: 'income' },
+        meta: { title: '余额录入', module: 'income' },
       },
       {
-        path: 'income/sources',
-        name: 'IncomeSources',
-        component: () => import('@/views/income/Sources.vue'),
-        meta: { title: '来源管理', module: 'income' },
+        path: 'income/accounts',
+        name: 'IncomeAccounts',
+        component: () => import('@/views/income/Accounts.vue'),
+        meta: { title: '收入来源管理', module: 'income' },
       },
       // ---- 预留：更多模块在此扩展 ----
+      // ---- 债务管理模块 ----
+      {
+        path: 'debt/dashboard',
+        name: 'DebtDashboard',
+        component: () => import('@/views/debt/Dashboard.vue'),
+        meta: { title: '债务概览', module: 'debt' },
+      },
+      {
+        path: 'debt/list',
+        name: 'DebtList',
+        component: () => import('@/views/debt/Debts.vue'),
+        meta: { title: '债务管理', module: 'debt' },
+      },
+      {
+        path: 'debt/schedule/:id',
+        name: 'DebtSchedule',
+        component: () => import('@/views/debt/Schedule.vue'),
+        meta: { title: '还款计划', module: 'debt' },
+      },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: '/' },

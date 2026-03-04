@@ -1,105 +1,105 @@
 import http from './http'
 
-export interface IncomeSource {
+export interface Account {
   id: number
   name: string
-  icon: string | null
-  is_active: boolean
   sort_order: number
-  created_at: string
+  is_active: boolean
 }
 
-export interface IncomeRecord {
-  id: number
-  source_id: number
-  source_name: string
-  amount: number
-  record_date: string
-  note: string | null
-  created_at: string
+export interface BalanceItem {
+  account_id: number
+  balance: number
 }
 
-export interface RecordListResult {
+export interface MonthlyBalanceRead {
+  account_id: number
+  account_name: string
+  balance: number
+  updated_at: string
+}
+
+export interface MonthlySnapshot {
+  month: string
   total: number
-  page: number
-  page_size: number
-  items: IncomeRecord[]
+  items: MonthlyBalanceRead[]
 }
 
-export interface YearlyTrendItem {
-  month: number
-  total: number
+export interface TrendPoint {
+  month: string
+  value: number
 }
 
-export interface MonthlyBreakdownItem {
-  source_id: number
-  source_name: string
-  total: number
-  percentage: number
-}
-
-export interface AnnualTotalItem {
-  year: number
-  total: number
+export interface AccountTrend {
+  account_id: number
+  account_name: string
+  data: TrendPoint[]
 }
 
 export const incomeApi = {
-  // ---------- 来源 ----------
-  getSources(includeInactive = false) {
-    return http.get<IncomeSource[]>('/income/sources', {
-      params: { include_inactive: includeInactive },
-    })
-  },
-  createSource(data: { name: string; icon?: string; sort_order?: number }) {
-    return http.post<IncomeSource>('/income/sources', data)
-  },
-  updateSource(id: number, data: Partial<{ name: string; icon: string; is_active: boolean; sort_order: number }>) {
-    return http.put<IncomeSource>(`/income/sources/${id}`, data)
-  },
-  deleteSource(id: number) {
-    return http.delete(`/income/sources/${id}`)
+  // 账户列表（首次调用自动初始化默认账户）
+  getAccounts() {
+    return http.get<Account[]>('/income/accounts')
   },
 
-  // ---------- 记录 ----------
-  getRecords(params: { page?: number; page_size?: number; year?: number; month?: number; source_id?: number }) {
-    return http.get<RecordListResult>('/income/records', { params })
-  },
-  createRecord(data: { source_id: number; amount: number; record_date: string; note?: string }) {
-    return http.post<IncomeRecord>('/income/records', data)
-  },
-  updateRecord(id: number, data: Partial<{ source_id: number; amount: number; record_date: string; note: string }>) {
-    return http.put<IncomeRecord>(`/income/records/${id}`, data)
-  },
-  deleteRecord(id: number) {
-    return http.delete(`/income/records/${id}`)
+  // 创建账户
+  createAccount(name: string, sort_order = 0) {
+    return http.post<Account>('/income/accounts', { name, sort_order })
   },
 
-  // ---------- 统计 ----------
-  getYearlyTrend(year: number) {
-    return http.get<YearlyTrendItem[]>('/income/records/stats/yearly-trend', { params: { year } })
+  // 更新账户
+  updateAccount(id: number, data: { name?: string; sort_order?: number }) {
+    return http.put<Account>(`/income/accounts/${id}`, data)
   },
-  getMonthlyBreakdown(year: number, month: number) {
-    return http.get<MonthlyBreakdownItem[]>('/income/records/stats/monthly-breakdown', {
-      params: { year, month },
-    })
+
+  // 删除账户（软删除）
+  deleteAccount(id: number) {
+    return http.delete(`/income/accounts/${id}`)
   },
-  getAnnualTotals(years = 5) {
-    return http.get<AnnualTotalItem[]>('/income/records/stats/annual-totals', { params: { years } })
+
+  // 所有月份快照列表（倒序）
+  listMonths(limit = 24) {
+    return http.get<MonthlySnapshot[]>('/income/balances', { params: { limit } })
   },
-  exportCsvUrl(params: { year?: number; month?: number; source_id?: number }, token: string) {
-    const q = new URLSearchParams()
-    if (params.year) q.set('year', String(params.year))
-    if (params.month) q.set('month', String(params.month))
-    if (params.source_id) q.set('source_id', String(params.source_id))
-    return `/api/income/records/export/csv?${q.toString()}`
+
+  // 单月详情
+  getMonth(month: string) {
+    return http.get<MonthlySnapshot>(`/income/balances/${month}`)
   },
+
+  // 创建/更新某月余额（upsert）
+  upsertBalances(month: string, balances: BalanceItem[]) {
+    return http.post<MonthlySnapshot>('/income/balances', { month, balances })
+  },
+
+  // 删除某月全部记录
+  deleteMonth(month: string) {
+    return http.delete(`/income/balances/${month}`)
+  },
+
+  // 趋势数据（折线图）—— 按月
+  getTrend(months = 12) {
+    return http.get<AccountTrend[]>('/income/stats/trend', { params: { months } })
+  },
+
+  // 趋势数据（折线图）—— 按年
+  getTrendYearly(years = 5) {
+    return http.get<AccountTrend[]>('/income/stats/trend/yearly', { params: { years } })
+  },
+
+  // 导出 CSV
+  exportCsv() {
+    return http.get('/income/export/csv', { responseType: 'blob' })
+  },
+
+  // 导入 CSV
   importCsv(file: File) {
-    const form = new FormData()
-    form.append('file', file)
-    return http.post<{ imported: number; skipped: number; errors: string[] }>(
-      '/income/records/import/csv',
-      form,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
+    const formData = new FormData()
+    formData.append('file', file)
+    return http.post<{ inserted: number; updated: number; skipped: number }>(
+      '/income/import/csv',
+      formData,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
     )
   },
 }

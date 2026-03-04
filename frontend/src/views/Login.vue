@@ -140,4 +140,22 @@ async function handleLogin() {
   margin-top: 20px;
   margin-bottom: 0;
 }
+
+/* 浅色登录卡片内强制输入框使用白色背景，避免 dark CSS 变量污染 */
+.login-card :deep(.el-input__wrapper) {
+  background-color: #f5f7fa !important;
+  box-shadow: 0 0 0 1px #dcdfe6 inset !important;
+}
+.login-card :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #c0c4cc inset !important;
+}
+.login-card :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #3b82f6 inset !important;
+}
+.login-card :deep(.el-input__inner) {
+  color: #303133;
+}
+.login-card :deep(.el-input__prefix-inner .el-icon) {
+  color: #909399;
+}
 </style>

@@ -21,9 +21,12 @@ class User(Base):
         DateTime, nullable=False, server_default=func.now(), onupdate=func.now()
     )
 
-    income_sources: Mapped[list["IncomeSource"]] = relationship(  # noqa: F821
-        "IncomeSource", back_populates="user", cascade="all, delete-orphan"
+    accounts: Mapped[list["Account"]] = relationship(  # noqa: F821
+        "Account", back_populates="user", cascade="all, delete-orphan"
     )
-    income_records: Mapped[list["IncomeRecord"]] = relationship(  # noqa: F821
-        "IncomeRecord", back_populates="user", cascade="all, delete-orphan"
+    monthly_balances: Mapped[list["MonthlyBalance"]] = relationship(  # noqa: F821
+        "MonthlyBalance", back_populates="user", cascade="all, delete-orphan"
+    )
+    debt_items: Mapped[list["DebtItem"]] = relationship(  # noqa: F821
+        "DebtItem", back_populates="user", cascade="all, delete-orphan"
     )
